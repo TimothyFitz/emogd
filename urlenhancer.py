@@ -81,8 +81,12 @@ class Reporter(webapp.RequestHandler):
 
 class Enhancer(webapp.RequestHandler):
   def generatePhrase(self):
-    phrase = "8------D-" + str(random.randint(1,sys.maxint))
-    phrase = urllib.urlencode({phrase:''})[:-1]
+    from emoji import characters
+    phrase = ""
+    for i in range(0,4):
+      phrase += characters[random.randrange(0, len(characters))]
+    
+#    phrase = "8------D-" + str(random.randint(1,sys.maxint))
     return phrase
 
   def generateUrl(self, phrase):
@@ -91,16 +95,28 @@ class Enhancer(webapp.RequestHandler):
   def post(self):
     mapObj = UrlMap()
     mapObj.destinationUrl = self.request.get('content')
-    mapObj.enhancedPhrase = self.generatePhrase()
+    phrase = self.generatePhrase()
+    mapObj.enhancedPhrase = urllib.quote(phrase.encode('utf-8'))
     mapObj.hits = 0
     mapObj.put()
 
-    newUrl = self.generateUrl(mapObj.enhancedPhrase)
+    newUrl = self.generateUrl(phrase)
 
+    
     response = 'Wow, we\'re not really sure how you had friends with such an insignificant URL!</br>'
     response += '<br/>We highly recommend not showing that to anyone, instead use:<br/><br/>'
     response += '</div><center><input type="text" value="'+newUrl+'" size="60" id="url"/><div><br/>Sorry this URL is so lame, an actual enhancing algorithm is coming soon.'
     self.response.out.write(header(self.request) + response + footer())
+
+class Char(webapp.RequestHandler):
+  def get(self):
+    from emoji import characters
+    output = "<div style='font-size: 72pt'>"
+    for n in range(0, len(characters), 5):
+      output += characters[n:n+5] + "<br />"
+    output += "</div>"
+    
+    self.response.out.write(header(self.request) + output + footer())
 
 class Redirecter(webapp.RequestHandler):
   def get(self):
@@ -121,6 +137,7 @@ application = webapp.WSGIApplication(
   [('/', MainPage),
    ('/enhance', Enhancer),
    ('/tellmeallaboutdicks', Reporter),
+   ('/char', Char),
    ('/.*', Redirecter)
    ],
   debug=True)
