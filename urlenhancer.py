@@ -49,7 +49,7 @@ def get_server(request):
 def header(request):
   html = "<html><head><title>100% All-natural URL enhancement!</title></head><body>" + selectJs + """
     <div style="width:400px;margin:0 auto;align:center;">
-      <a href=\"""" + get_server(request) + """\"><img src="http://wxbanker.org/dicks/logo.png" align="center" border="0"/></a><br/>"""
+      <a href="/"><img src="http://wxbanker.org/dicks/logo.png" align="center" border="0"/></a><br/>"""
   return html
 
 def footer():
