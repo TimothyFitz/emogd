@@ -5,17 +5,10 @@ from google.appengine.ext.webapp import template
 
 
 
-dickRules = (
-  "~*@=*8",
-  "@=*8",
-  "8=*D~*",
-  "8=*D",
-  "mydi*ckishu*ge",
-  "myco*ckishu*ge",
-)
-
 def get_server(request):
   server, port = request.server_name, request.server_port
+  if 'emo.gd' in server:
+    server = 'emo.gd'
   address =  "http://" + server
   if int(port) != 80:
     address += ":%s" % port
@@ -30,10 +23,13 @@ class UrlMap(db.Model):
   destinationUrl = db.StringProperty()
   date = db.DateTimeProperty(auto_now_add=True)
   hits = db.IntegerProperty()
+  emojiedUrl = db.StringProperty()
 
 class MainPage(webapp.RequestHandler):
   def get(self):
-    response = """
+    response = ("""Emojied: a URL shortener that takes your URL and gives you
+    back an emojied URL <div class="iphonehide">(shows up rad on the iPhone)</div><br/><br/>""")
+    response += """
       <form action="/emojied" method="post">
         <div><input type="text" size="30" name="content"/></div>
         <div><input type="submit" value="Emojify!"></div>
@@ -62,14 +58,25 @@ class Enhancer(webapp.RequestHandler):
     return get_server(self.request) + phrase
 
   def post(self):
-    mapObj = UrlMap()
-    mapObj.destinationUrl = self.request.get('content')
-    phrase = self.generatePhrase()
-    mapObj.enhancedPhrase = urllib.quote(phrase.encode('utf-8'))
-    mapObj.hits = 0
-    mapObj.put()
+    content = self.request.get('content')
+    newUrl = ''
+    try:
+        existing = db.GqlQuery("SELECT * FROM UrlMap WHERE destinationUrl = :1", content)[0]
+        if(existing.emojiedUrl):
+            newUrl = existing.emojiedUrl    
 
-    newUrl = self.generateUrl(phrase)
+    except IndexError:
+        mapObj = UrlMap()
+        mapObj.destinationUrl = content
+        phrase = self.generatePhrase()
+        mapObj.enhancedPhrase = urllib.quote(phrase.encode('utf-8'))
+        mapObj.hits = 0
+
+        newUrl = self.generateUrl(phrase)
+
+        mapObj.emojiedUrl = newUrl
+        mapObj.put()
+
     response = 'Here\'s your emojied URL:<br/>' 
     response += '</div><center><input type="text" value="'+newUrl+'" size="30" id="url"/><div>'
     self.response.out.write(templatize(response))
@@ -89,6 +96,9 @@ class Redirecter(webapp.RequestHandler):
     try:
       url = db.GqlQuery("SELECT * FROM UrlMap WHERE enhancedPhrase = :1 LIMIT 1", key)[0]
     except IndexError:
+      from emoji import characters
+      response = ("Emoji fail. Please <a href=\"/\">emoje something else "+
+        characters[47]+"</a>")
       self.response.out.write(templatize(response))
     else:
       url.hits += 1
